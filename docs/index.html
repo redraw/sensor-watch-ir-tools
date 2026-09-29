@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Memory and IR firmware updates · Sensor Watch</title>
+  <style>
+    :root { color-scheme: dark; --bg:#140d10; --panel:#21171b; --panel2:#2b1d22; --ink:#fff1ed; --muted:#ccb5b3; --line:#51353b; --accent:#ff746c; --green:#a4df91; --amber:#f5bd69; --red:#ff9a93; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; background:radial-gradient(circle at 88% -8%, #4a1d25 0, transparent 32rem),var(--bg); color:var(--ink); font:16px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    button, input { font:inherit; }
+    button { cursor:pointer; }
+    a { color:var(--accent); }
+    a:hover { text-decoration:none; }
+    .shell { max-width:1240px; margin:auto; padding:36px 26px 70px; }
+    .eyebrow { color:var(--accent); font-size:.76rem; font-weight:750; text-transform:uppercase; letter-spacing:.15em; }
+    h1 { font-size:clamp(2.2rem,5vw,4.3rem); line-height:1.05; letter-spacing:-.045em; margin:12px 0 16px; max-width:820px; }
+    h2 { font-size:1.2rem; letter-spacing:-.02em; margin:0 0 16px; }
+    h3 { font-size:1rem; margin:0 0 8px; }
+    p { margin:0 0 12px; }
+    .lead { max-width:810px; color:var(--muted); font-size:1.12rem; }
+    .topline { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:28px; }
+    .mark { display:flex; gap:10px; align-items:center; color:var(--muted); font-size:.86rem; }
+    .mark b { display:grid; place-items:center; width:34px; height:34px; border:1px solid var(--accent); border-radius:9px; color:var(--accent); font-size:.75rem; }
+    .badge { border:1px solid var(--line); border-radius:999px; padding:6px 11px; color:var(--muted); font-size:.78rem; white-space:nowrap; }
+    .hero-note { margin:26px 0 30px; border:1px solid #793d44; border-left:4px solid var(--accent); background:#351b22; border-radius:12px; padding:16px 20px; max-width:960px; }
+    .hero-note strong { color:var(--accent); }
+    .controls { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin:0 0 18px; }
+    .switch { display:inline-flex; border:1px solid var(--line); border-radius:11px; padding:3px; background:#1b1115; }
+    .switch button { background:transparent; border:0; border-radius:8px; color:var(--muted); padding:9px 15px; font-weight:700; }
+    .switch button[aria-pressed="true"] { background:var(--accent); color:#2b0b11; }
+    .hint { color:var(--muted); font-size:.85rem; }
+    .steps { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; margin-bottom:20px; }
+    .step { min-height:62px; padding:10px 8px; color:var(--muted); border:1px solid var(--line); background:#24171c; border-radius:10px; text-align:left; font-size:.79rem; line-height:1.25; }
+    .step span { display:block; font-size:.68rem; opacity:.75; margin-bottom:4px; }
+    .step.active { color:#2b0b11; background:var(--accent); border-color:var(--accent); font-weight:750; }
+    .step.done { border-color:#a7535b; color:#ffd4cf; }
+    .grid { display:grid; grid-template-columns:minmax(0,1.12fr) minmax(320px,.88fr); gap:18px; }
+    .panel { min-width:0; border:1px solid var(--line); background:var(--panel); border-radius:16px; padding:20px; box-shadow:0 12px 36px #0002; }
+    .panel-head { display:flex; align-items:start; justify-content:space-between; gap:12px; }
+    .caption { color:var(--muted); font-size:.83rem; }
+    .label-row { display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin:23px 0 8px; }
+    .label-row:first-of-type { margin-top:8px; }
+    .label-row b { font-size:.93rem; }
+    .label-row small { color:var(--muted); }
+    .memory { display:flex; width:100%; height:76px; border:1px solid #735057; border-radius:9px; overflow:hidden; background:#1a1014; }
+    .segment { position:relative; min-width:0; display:flex; align-items:center; justify-content:center; border-right:2px solid #140d10; text-align:center; transition:background .25s; }
+    .segment:last-child { border:0; }
+    .segment strong { font-size:.74rem; line-height:1.2; }
+    .boot { background:#855b4b; width:3.125%; }
+    .app { background:#773c49; width:93.75%; justify-content:stretch; overflow:hidden; }
+    .eeprom { background:#694458; width:3.125%; }
+    .tiny-tag { position:absolute; font-size:.7rem; color:var(--muted); top:83px; white-space:nowrap; }
+    .left-tag { left:0; } .right-tag { right:0; }
+    .app-old, .app-new { height:100%; display:flex; align-items:center; justify-content:center; white-space:nowrap; overflow:hidden; transition:width .35s; }
+    .app-old { background:#773c49; color:#ffe9e4; }
+    .app-new { background:repeating-linear-gradient(135deg,#e6655d,#e6655d 8px,#f47b6e 8px,#f47b6e 16px); color:#320f14; font-weight:800; }
+    .app-new span, .app-old span { padding:0 8px; }
+    .axis { display:flex; justify-content:space-between; gap:4px; font-size:.68rem; color:var(--muted); font-family:ui-monospace,SFMono-Regular,Consolas,monospace; margin-top:7px; }
+    .legend { display:flex; gap:13px; flex-wrap:wrap; margin:17px 0 2px; color:var(--muted); font-size:.78rem; }
+    .legend span:before { content:""; display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:6px; }
+    .legend .lboot:before { background:#a7755f; } .legend .lold:before { background:#914c5b; } .legend .lnew:before { background:#f47b6e; } .legend .leep:before { background:#83566e; }
+    .ram { display:flex; height:74px; border:1px solid #735057; border-radius:9px; overflow:hidden; }
+    .ram > div { min-width:0; display:grid; place-items:center; text-align:center; font-size:.7rem; line-height:1.18; padding:3px; border-right:2px solid #140d10; }
+    .ram > div:last-child { border-right:0; }
+    .ram > div[hidden] { display:none; }
+    .ram-static { width:35.73%; background:#67404b; }
+    .ram-heap { width:14.27%; background:#88505b; }
+    .ram-free { width:12.5%; background:#3b2930; color:#ead0cb; }
+    .ram-state { width:20.5%; background:#d7a65e; color:#2a1a0b; font-weight:800; }
+    .ram-gap { width:6.27%; background:#3b2930; }
+    .ram-overlay { width:23.39%; background:#a64a54; transition:background .25s; }
+    .ram-stack { width:14.11%; background:#734350; }
+    .ram-overlay.live { background:#f27770; color:#320f14; font-weight:800; }
+    .ram-axis { display:flex; justify-content:space-between; gap:4px; font-size:.67rem; color:var(--muted); font-family:ui-monospace,SFMono-Regular,Consolas,monospace; margin-top:6px; }
+    .ram-detail { margin-top:12px; border:1px solid var(--line); border-radius:10px; background:#25181d; padding:12px 14px; font-size:.84rem; color:#f0d9d4; }
+    .ram-detail p { margin:0; }
+    .ram-detail p[hidden] { display:none; }
+    .ram-detail strong { color:var(--amber); }
+    .smallnote { font-size:.83rem; color:var(--muted); margin-top:15px; }
+    .callout { border:1px solid var(--line); background:var(--panel2); border-radius:12px; padding:14px 16px; margin:16px 0; }
+    .callout b { color:var(--accent); }
+    .step-num { color:var(--accent); font-size:.76rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+    #stage-title { font-size:1.55rem; line-height:1.16; margin:8px 0 14px; }
+    #stage-text { color:#efdad5; min-height:78px; }
+    .flow { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin:20px 0; }
+    .flow-node { position:relative; min-height:78px; display:flex; flex-direction:column; justify-content:center; border:1px solid var(--line); border-radius:10px; padding:10px; background:#25171c; text-align:center; font-size:.76rem; color:var(--muted); }
+    .flow-node:not(:last-child):after { content:"→"; position:absolute; right:-10px; top:26px; color:var(--accent); font-size:1.2rem; z-index:2; }
+    .flow-node b { color:var(--ink); font-size:.86rem; }
+    .flow-node.on { border-color:var(--accent); background:#4a252d; }
+    .status { min-height:74px; border-left:3px solid var(--amber); background:#362c23; border-radius:8px; padding:12px 14px; color:#f5dbb8; font-size:.89rem; }
+    .status.ok { border-color:var(--green); background:#243729; color:#d9f1d4; }
+    .status.bad { border-color:var(--red); background:#422b2e; color:#ffd8d4; }
+    .actions { display:flex; gap:9px; flex-wrap:wrap; align-items:center; margin-top:20px; }
+    .primary, .secondary { border-radius:9px; padding:10px 14px; font-weight:700; }
+    .primary { color:#2b0b11; background:var(--accent); border:1px solid var(--accent); }
+    .secondary { color:var(--ink); background:transparent; border:1px solid var(--line); }
+    .primary:disabled, .secondary:disabled { opacity:.4; cursor:default; }
+    .progress-box { margin-top:17px; padding:13px; background:#1b1115; border-radius:10px; border:1px solid var(--line); }
+    .progress-box label { display:flex; justify-content:space-between; gap:10px; font-size:.83rem; margin-bottom:9px; }
+    input[type="range"] { width:100%; accent-color:var(--accent); }
+    .plain-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:20px 0; }
+    .fact { border:1px solid var(--line); border-radius:13px; padding:17px; background:#26191e; }
+    .fact .big { color:var(--accent); font-size:1.6rem; font-weight:800; line-height:1; margin-bottom:7px; }
+    .fact p { color:var(--muted); font-size:.82rem; margin:0; }
+    .lower { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:18px; }
+    .rows { display:grid; gap:9px; }
+    .row { display:grid; grid-template-columns:98px 1fr; gap:10px; border-bottom:1px solid var(--line); padding:9px 0; font-size:.88rem; }
+    .row:last-child { border:0; }
+    .row b { color:var(--accent); }
+    .state-table { width:100%; border-collapse:collapse; font-size:.86rem; }
+    .state-table th, .state-table td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); }
+    .state-table th:last-child, .state-table td:last-child { text-align:right; white-space:nowrap; }
+    .state-table tfoot { font-weight:800; color:var(--amber); }
+    code { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:.86em; color:#ffe1d9; }
+    .sources { margin-top:26px; color:var(--muted); font-size:.83rem; }
+    .sources ul { margin:8px 0 0; padding-left:18px; }
+    .sources li { margin:4px 0; }
+    @media (max-width:850px) { .grid,.lower { grid-template-columns:1fr; } .steps { grid-template-columns:repeat(4,1fr); } }
+    @media (max-width:550px) { .shell { padding:22px 14px 44px; } .steps { grid-template-columns:repeat(2,1fr); } .plain-grid { grid-template-columns:1fr; } .badge { display:none; } .memory,.ram { height:66px; } .segment strong { font-size:.6rem; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="topline"><div class="mark"><b>IR</b><span>Sensor Watch · visual guide</span></div><span class="badge">SAM L22 · actual memory map, illustrative progress</span></div>
+    <div class="eyebrow">From a UF2 file to a running watch</div>
+    <h1>How can firmware update while it is running?</h1>
+    <p class="lead">The key is to move the small flashing program from flash into RAM. It can then erase the application that contained it, receive the remaining blocks over infrared, and reboot only after verifying the complete image.</p>
+    <div class="hero-note"><strong>In one line:</strong> PC → USB/IR modem → watch receiver → flasher in RAM → application flash → final CRC → reboot.</div>
+
+    <div class="controls" aria-label="Update mode">
+      <div class="switch"><button type="button" class="mode" data-mode="full" aria-pressed="true">Full image</button><button type="button" class="mode" data-mode="patch" aria-pressed="false">Delta patch</button></div>
+      <span class="hint">Choose a mode and step through the process. You can also use ← and →.</span>
+    </div>
+    <nav class="steps" aria-label="Update steps"></nav>
+
+    <div class="grid">
+      <section class="panel" aria-labelledby="memory-title">
+        <div class="panel-head"><div><h2 id="memory-title">Watch memory map</h2><div class="caption">Actual SAM L22 addresses; flash and RAM drawn to scale.</div></div></div>
+        <div class="label-row"><b>Internal flash · 256 KiB</b><small>nonvolatile</small></div>
+        <div class="memory" role="img" aria-label="Flash: 8 KiB bootloader, 240 KiB application, 8 KiB reserved EEPROM">
+          <div class="segment boot" title="Bootloader UF2: 0x00000–0x01FFF"></div>
+          <div class="segment app"><div class="app-new" id="app-new"><span>new firmware</span></div><div class="app-old" id="app-old"><span>current firmware / free space</span></div></div>
+          <div class="segment eeprom" title="Reserved EEPROM: 0x3E000–0x3FFFF"></div>
+        </div>
+        <div class="axis"><span>0x00000</span><span>0x02000 · app</span><span>0x3E000</span><span>0x40000</span></div>
+        <div class="legend"><span class="lboot">UF2 bootloader · 8 KiB</span><span class="lold">Application · 240 KiB</span><span class="lnew">Updated rows (illustrative)</span><span class="leep">Reserved EEPROM · 8 KiB</span></div>
+        <p class="smallnote">The host and watch accept writes only within <code>[0x02000, 0x3E000)</code>. Before the update, the application region also holds the load copy of the RAM overlay.</p>
+
+        <div class="label-row"><b>SRAM · 32 KiB</b><small>volatile</small></div>
+        <div class="ram" id="ram-map" role="img" aria-label="RAM before the patch: static data, heap used through 0x20004000, 4096 free bytes, shared overlay, and stack">
+          <div class="ram-static" title="Static data: 0x20000000–0x20002DBC">static data</div>
+          <div class="ram-heap" id="ram-heap" title="Heap used by Movement: 0x20002DBC–0x20004000">used heap</div>
+          <div class="ram-free" id="ram-free" title="Observed free space: 0x20004000–0x20005000, 4096 bytes">free<br>4096 B</div>
+          <div class="ram-state" id="ram-state" title="UltraPatch state: 0x20002DBC–0x200047F8, 6716 bytes" hidden>PatchApply<br>6716 B</div>
+          <div class="ram-gap" id="ram-gap" title="Gap before the overlay: 2056 bytes" hidden></div>
+          <div class="ram-overlay" id="ram-overlay" title="Same overlay for full image and patch: 0x20005000–0x20006DF0, 7664 bytes">overlay<br>7664 B</div>
+          <div class="ram-stack" title="Stack and canary: 0x20006DF0–0x20008000">stack</div>
+        </div>
+        <div class="ram-axis"><span>0x20000000</span><span>overlay: 0x20005000</span><span>0x20008000</span></div>
+        <div class="ram-detail" aria-live="polite">
+          <p id="ram-before">In the observed session, the heap extended to <code>0x20004000</code>, leaving <strong>4096 B</strong> before the overlay. UltraPatch required <strong>6716 + 512 = 7228 B</strong> to allocate its state. The allocation failed for lack of space, so the first frame received no ACK.</p>
+          <p id="ram-full" hidden>A full flash uses the <strong>7664 B</strong> overlay without allocating <code>PatchApply</code>. The <strong>4096 B</strong> of free space reflect the observed session; they do not limit a full image transfer.</p>
+          <p id="ram-reused" hidden>After copying the first frame and leaving Movement, UltraPatch reuses the heap from <code>0x20002DBC</code> to <code>0x200047F8</code>. Its <strong>6716 B</strong> end <strong>2056 B</strong> before the overlay. A full flash uses the same overlay without allocating this state.</p>
+          <p id="ram-finished" hidden>After rebooting, the new firmware rearranges RAM. This map shows the measured update session, not memory use after startup.</p>
+        </div>
+        <p class="smallnote">Addresses and sizes come from the measured <code>sensorwatch_pro</code> build. The overlay loads when the first block arrives; the linker requires it to end before <code>0x20007600</code> to leave room for the stack.</p>
+      </section>
+
+      <section class="panel" aria-live="polite">
+        <div class="step-num" id="stage-counter"></div><h2 id="stage-title"></h2><p id="stage-text"></p>
+        <div class="flow" aria-label="Data path"><div class="flow-node" id="node-pc"><b>PC</b><span>UF2 + Python</span></div><div class="flow-node" id="node-modem"><b>Modem</b><span>USB ↔ IR</span></div><div class="flow-node" id="node-watch"><b>Watch</b><span>LED + sensor</span></div></div>
+        <div class="status" id="status"></div>
+        <div class="progress-box" id="progress-box" hidden><label for="progress"><span>Illustrative write progress</span><output id="progress-value">0%</output></label><input id="progress" type="range" min="0" max="100" value="0"><div class="caption">This does not represent a specific UF2 file. Move the slider to see a partly updated image.</div></div>
+        <div class="actions"><button type="button" class="secondary" id="previous">← Previous</button><button type="button" class="primary" id="next">Next →</button><button type="button" class="secondary" id="fail" hidden>Simulate CRC mismatch</button><button type="button" class="secondary" id="retry" hidden>Restart at block 0</button></div>
+      </section>
+    </div>
+
+    <div class="plain-grid">
+      <div class="fact"><div class="big">256 B</div><h3>One flash row</h3><p>In full-image mode, each block carries a 4-byte address and 256 data bytes. A row is erased and programmed as four 64-byte pages.</p></div>
+      <div class="fact"><div class="big">ACK</div><h3>Stop and wait</h3><p>The watch returns the 2-byte ID only after processing a block. If the ACK is lost, the PC resends it; the watch recognizes the duplicate and replies without writing twice.</p></div>
+      <div class="fact"><div class="big">CRC‑32</div><h3>Boot gate</h3><p>Each frame has its own CRC. At the end, the watch calculates another CRC over the entire written image and reboots only if it matches the expected value.</p></div>
+    </div>
+
+    <section class="panel" style="margin-top:18px" aria-labelledby="state-title">
+      <h2 id="state-title">What makes up the UltraPatch state?</h2>
+      <p class="caption">This is the decoder's fixed working memory, even for a one-frame patch. The full image remains in flash.</p>
+      <table class="state-table">
+        <thead><tr><th scope="col">Component</th><th scope="col">Bytes</th></tr></thead>
+        <tbody>
+          <tr><td>LZ history and counters</td><td>2072</td></tr>
+          <tr><td>Byte probability models</td><td>1785</td></tr>
+          <tr><td>Offset dictionaries</td><td>960</td></tr>
+          <tr><td>Two flash row buffers</td><td>512</td></tr>
+          <tr><td>Offset map</td><td>384</td></tr>
+          <tr><td>Other models, cursors, and controls</td><td>1003</td></tr>
+        </tbody>
+        <tfoot><tr><td>Total <code>PatchApply</code></td><td>6716</td></tr></tfoot>
+      </table>
+    </section>
+
+    <div class="lower">
+      <section class="panel"><h2>How can it erase its own firmware?</h2><div class="rows"><div class="row"><b>Before</b><span>The Movement face and the overlay's load copy reside in flash. The face checks the link and prepares the first block.</span></div><div class="row"><b>Handoff</b><span>It copies the overlay into RAM, verifies the copy, disables interrupts, and hands control to <code>flasher_run</code>.</span></div><div class="row"><b>Patch</b><span>The flasher copies the first frame into its buffer. Only then can the decoder overwrite the heap used by Movement. A full flash does not need this extra state.</span></div><div class="row"><b>During</b><span>The core and decoder run from RAM while the NVM controller erases and programs application flash rows.</span></div><div class="row"><b>After</b><span>Successful verification triggers a reset. The UF2 bootloader starts the new firmware; the temporary overlay disappears from RAM.</span></div></div></section>
+      <section class="panel"><h2>If the session is interrupted</h2><div class="rows"><div class="row"><b>No ACK</b><span>The host retries the same frame. A repeated ID for the last block receives an ACK without another write.</span></div><div class="row"><b>Bad CRC</b><span>The watch does not ACK EXIT and stays in the RAM loop. It can receive another full image starting at block 0.</span></div><div class="row"><b>Patch</b><span>Patch ENTER checks the base image's CRC before writing. Because the patch modifies the base in place, recovery from a failure requires sending the full image.</span></div><div class="row"><b>Limit</b><span>By default, the host requires the new image to retain the flasher face; without it, another IR update would be impossible. The user can explicitly override this safeguard.</span></div></div></section>
+    </div>
+
+    <section class="sources"><b>Code sources</b><ul>
+      <li><a href="../../second-movement/gossamer/chips/saml22/linker/saml22n18.ld">Linker flash and RAM map</a> and <a href="../../second-movement/firmware-flasher/flasher-overlay.ld">overlay location</a>.</li>
+      <li><a href="../../second-movement/firmware-flasher/firmware_flasher_core.h">Geometry, ranges, and protocol</a>; <a href="../../second-movement/firmware-flasher/firmware_flasher_core.c">writing, ACKs, and verification</a>.</li>
+      <li><a href="../../second-movement/watch-faces/settings/firmware_flasher_face.c">Face: TEST, ENTER, and overlay loading</a>; <a href="../bin/firmware_flasher.py">host: UF2, patching, and retries</a>.</li>
+      <li><a href="../ultrapatch/src/patch_apply.h"><code>PatchApply</code> structure and buffers</a>; <a href="../../second-movement/firmware-flasher/firmware_flasher_ultrapatch.c">watch decoder integration</a>.</li>
+    </ul></section>
+  </main>
+  <script>
+    const stages = [
+      { short:"Prepare", title:"Prepare the image", full:"Python reads the UF2, orders its blocks, checks that they form contiguous 256-byte rows within application flash, and calculates the CRC of the full image. It also checks that the new firmware contains the flasher face, unless explicitly overridden.", patch:"Python assembles the new and reference UF2 images. It detects the base image's patch format from its beacon, generates a delta (UltraPatch by default on the watch, or detools depending on the build), and checks locally that the patch reconstructs the new image.", status:"Nothing has been written to the watch yet.", node:0 },
+      { short:"Test IR", title:"Check the optical link", full:"The face receives TEST frames. It validates each frame's CRC and replies with its ID without writing to flash. The host tests several blocks and retries when an ACK is missing.", patch:"The face receives TEST frames containing patch fragments. It validates each CRC and returns the ID without applying the delta. This checks both directions of the link before touching flash.", status:"TEST is reversible: the current application remains intact.", node:1 },
+      { short:"ENTER", title:"Arm the session", full:"The host sends an empty ENTER frame. The face ACKs it and waits for the first real block. If the ENTER ACK is lost, the host can repeat it without starting two sessions.", patch:"The host sends ENTER with the reference base address, size, and CRC, the new size, and the shift parameter. The face checks the CRC of its current flash and ACKs only if it matches.", status:"ENTER prepares the update. The first real block is the point of no return.", node:2 },
+      { short:"Copy", title:"Copy the flasher to RAM", full:"When the first block arrives, the face copies the core and decoder from their load image in flash into the 7664-byte RAM overlay. It then disables interrupts, configures the IR link directly, and hands the block to flasher_run.", patch:"When the first frame arrives, the face loads the same 7664-byte overlay. If the 6716-byte PatchApply state does not fit at the end of the heap, it allocates the region from the heap's start. The flasher copies the first frame before the decoder overwrites Movement's old memory.", status:"Full-image and patch updates use the same overlay; only UltraPatch needs an additional 6716 bytes of state.", node:2 },
+      { short:"Write", title:"Update application flash", full:"Each frame carries an address and 256 bytes. The flasher checks the order and address range, erases the row, writes four 64-byte pages, and only then ACKs the ID. Previous application data can disappear, including the old flasher code in flash.", patch:"The decoder in RAM consumes delta frames and reconstructs new rows in the same application region. For a one-frame patch, the ACK comes after the entire image is reconstructed and verified; this can take several seconds. The pattern of changed rows depends on the patch; the bar shows only an illustrative transition.", status:"Flash may contain an incomplete mix of old and new data. The watch must remain in the RAM flasher.", node:2 },
+      { short:"Verify", title:"Verify the whole image", full:"The host sends EXIT with the base address, length, and expected CRC-32. The watch reads that entire flash region, calculates its CRC, and compares. If it matches, the watch ACKs EXIT; otherwise it remains in RAM without booting the incomplete image.", patch:"The host sends EXIT with the reconstructed new image's CRC-32. The watch checks the whole region; if verification fails, the host can offer a full update starting at block 0.", status:"The final CRC determines whether it is safe to reboot.", node:2 },
+      { short:"Reboot", title:"Boot the new firmware", full:"After a correct CRC, the flasher sends an ACK and triggers a reset. The UF2 bootloader, which was never overwritten, starts the new application. The temporary overlay disappears from RAM.", patch:"After a correct CRC, the flasher sends an ACK and reboots. The intact bootloader starts the new image reconstructed by the patch; RAM returns to normal use.", status:"Update complete: the watch is running the new firmware.", node:2 }
+    ];
+    let mode = "full", step = 0, failed = false;
+    const $ = id => document.getElementById(id);
+    const nav = document.querySelector(".steps");
+    stages.forEach((s,i) => { const b=document.createElement("button"); b.type="button"; b.className="step"; b.innerHTML=`<span>${String(i+1).padStart(2,"0")}</span>${s.short}`; b.addEventListener("click",()=>{step=i; failed=false; render();}); nav.appendChild(b); });
+    function render() {
+      const s=stages[step], writing=step>=4, finished=step===6 && !failed;
+      [...nav.children].forEach((b,i)=>{b.classList.toggle("active",i===step); b.classList.toggle("done",i<step); b.setAttribute("aria-current",i===step?"step":"false");});
+      document.querySelectorAll(".mode").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.mode===mode)));
+      $("stage-counter").textContent=`STEP ${step+1} OF ${stages.length} · ${mode==="full"?"FULL IMAGE":"DELTA PATCH"}`;
+      $("stage-title").textContent=failed?"Verification failed":s.title;
+      $("stage-text").textContent=failed?"The watch does not ACK EXIT or reboot. The application is incomplete; the flasher is still running from RAM and can receive a full image starting at block 0.":s[mode];
+      $("status").textContent=failed?"No EXIT ACK: the watch may still be waiting in RAM. A missing ACK can also mean verification succeeded but the ACK was lost; check the watch.":s.status;
+      $("status").className="status"+(failed?" bad":finished?" ok":"");
+      ["pc","modem","watch"].forEach((n,i)=>$("node-"+n).classList.toggle("on",i===s.node && !failed));
+      const patchState=mode==="patch" && step>=3 && !finished;
+      $("ram-heap").hidden=patchState;
+      $("ram-free").hidden=patchState;
+      $("ram-state").hidden=!patchState;
+      $("ram-gap").hidden=!patchState;
+      $("ram-before").hidden=mode!=="patch" || step>=3;
+      $("ram-full").hidden=mode!=="full" || finished;
+      $("ram-reused").hidden=!patchState;
+      $("ram-finished").hidden=!finished;
+      $("ram-map").setAttribute("aria-label",patchState
+        ? "RAM during UltraPatch: 6716 bytes of state from 0x20002DBC, a 2056-byte gap, shared overlay from 0x20005000, and stack"
+        : "RAM in the measured session before patching or during a full flash: static data, heap used through 0x20004000, 4096 free bytes, shared overlay, and stack");
+      $("ram-overlay").classList.toggle("live",step>=3 && !finished);
+      $("progress-box").hidden=step!==4;
+      let progress=step<4?0:step===4?Number($("progress").value):100;
+      $("progress-value").textContent=progress+"%";
+      $("app-new").style.width=progress+"%"; $("app-old").style.width=(100-progress)+"%";
+      $("app-new").querySelector("span").hidden=progress<23;
+      $("app-old").querySelector("span").hidden=progress>77;
+      $("previous").disabled=step===0;
+      $("next").disabled=step===6 || failed;
+      $("fail").hidden=step!==5 || failed;
+      $("retry").hidden=!failed;
+    }
+    document.querySelectorAll(".mode").forEach(b=>b.addEventListener("click",()=>{mode=b.dataset.mode;step=0;failed=false;$("progress").value=0;render();}));
+    $("previous").addEventListener("click",()=>{if(step>0){step--;failed=false;render();}});
+    $("next").addEventListener("click",()=>{if(step<6&&!failed){step++;render();}});
+    $("fail").addEventListener("click",()=>{failed=true;render();});
+    $("retry").addEventListener("click",()=>{mode="full";step=4;failed=false;$("progress").value=0;render();});
+    $("progress").addEventListener("input",render);
+    document.addEventListener("keydown",e=>{if(e.target.matches("input,button"))return;if(e.key==="ArrowRight")$("next").click();if(e.key==="ArrowLeft")$("previous").click();});
+    render();
+  </script>
+</body>
+</html>
