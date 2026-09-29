@@ -18,6 +18,44 @@ The host tooling here pairs with the watch-side faces that can be found at the *
 For an interactive explanation of the watch's memory map and the IR update
 sequence, open [docs/index.html](docs/index.html) in a browser.
 
+### Manage TOTP keys over IR
+
+With the matching `totp_lfs_face` firmware running, open the TOTP face and
+long-press Alarm to enter IR receive mode. Then use the USB modem:
+
+```bash
+bin/totp_manager.py list
+bin/totp_manager.py add --file secrets.txt  # one otpauth:// URI per line
+bin/totp_manager.py add                     # paste URIs interactively
+bin/totp_manager.py remove 2                # zero-based index from list
+bin/totp_manager.py move 4 1                # move key 4 into position 1
+bin/totp_manager.py help                    # commands and options; no modem needed
+```
+
+Short-press Alarm to leave IR mode. `list` shows each URI's label (the path before
+`?`), without transmitting or displaying the secret. `move FROM TO` (also
+available as `reorder FROM TO`) shifts the intervening keys while preserving
+each complete URI. Indices shift after a move or removal, so run `list` again
+before changing another key. The old `bin/totp_sender.py`
+entry point still runs the add workflow.
+
+Running `bin/totp_manager.py` without a command opens a persistent `totp>`
+prompt. It accepts `add otpauth://totp/...`, `list`, `remove INDEX`,
+`move FROM TO`, `help`, and `quit`. A pasted URI alone still adds it. Commands
+share the same modem session, and `help` does not send anything to the watch.
+
+The TOTP wire protocol uses the shared serial frame format at 2400 baud to the
+watch and 300 baud back. Frame flag 0 carries a URI and receives the legacy bare
+two-byte ID ACK. Flag 1 lists keys (empty payload requests the count; a one-byte
+zero-based index requests its label). Flag 2 removes the one-byte index. Flag 4
+moves a key using two one-byte indices, source then destination. Management
+replies are frames with flag 3, the same ID, and payload
+`[request flag, status, data...]`; status 0 is success, 1 a malformed request,
+2 an absent index, and 3 a storage error. The watch replays the last response
+for a repeated ID and request flag, so retrying a remove or move cannot apply
+the change twice. List, remove, and move require the matching watch firmware;
+older firmware supports add only.
+
 ---
 
 ## 1. Get the code and run the flasher
