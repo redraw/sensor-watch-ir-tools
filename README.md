@@ -56,6 +56,38 @@ for a repeated ID and request flag, so retrying a remove or move cannot apply
 the change twice. List, remove, and move require the matching watch firmware;
 older firmware supports add only.
 
+### Set the watch location over IR
+
+On a watch with the matching firmware, open the Sunrise/Sunset face and
+long-press **Light** to show `IrLoC / rEAdy`. Align the modem probe, then run:
+
+```bash
+bin/location_sender.py                 # suggest location from this computer's public IP
+bin/location_sender.py -34.60 -58.38   # or enter coordinates directly
+```
+
+The sender shows its suggested coordinates and asks for confirmation before
+transmitting. If IP lookup fails or its estimate is wrong, enter latitude and
+longitude manually. IP geolocation can be imprecise, especially through a VPN.
+Coordinates are decimal degrees (north/east positive) and are rounded to
+hundredths of a degree. Short-press Alarm to leave IR mode. The watch writes
+`location.u32`, which Sunrise/Sunset and Moon Phase read. The watch uses
+`0.00, 0.00` as its unset sentinel, so that coordinate cannot be saved.
+The Sunrise/Sunset receiver uses the current in-memory settings selected in
+the Firmware Flasher face. Defaults are 3600 baud host-to-watch, 300 baud ACK,
+NRZ, 8 Hz receive polling, 64 Hz ACK handling, and a four-tick ACK delay.
+Changing flasher settings persists across face switches until reboot or a
+flasher menu re-lock. Match any changed baud, encoding, or NRZ inversion on
+the sender with `--baud`, `--ack-baud`, `--encoding`, `--rx-invert`, and
+`--tx-invert`. The sender cannot read the watch menu remotely.
+
+The request is one shared serial frame with flag `0x20` and an eight-byte
+payload: ASCII `LOC1`, followed by signed latitude and longitude in
+hundredths of a degree as little-endian 16-bit integers. The watch validates
+both ranges, writes the location, and returns the bare two-byte frame ID as
+an ACK. A retransmission of the same coordinates is safe. Invalid or failed
+writes receive no ACK.
+
 ---
 
 ## 1. Get the code and run the flasher
